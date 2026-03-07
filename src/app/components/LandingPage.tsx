@@ -1,15 +1,45 @@
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { products } from '../data/mockData';
+import { useTrendingProducts, useCategories } from '../api/hooks';
 import { ProductCard } from './ProductCard';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserMenu } from './UserMenu';
 
+// Default categories with icons if API doesn't return any
+const defaultCategories = [
+  { name: 'Men', icon: '👔', slug: 'men' },
+  { name: 'Women', icon: '👗', slug: 'women' },
+  { name: 'Sneakers', icon: '👟', slug: 'sneakers' },
+  { name: 'Hoodies', icon: '🧥', slug: 'hoodies' },
+  { name: 'Jackets', icon: '🧥', slug: 'jackets' },
+  { name: 'Pants', icon: '👖', slug: 'pants' },
+];
+
+const categoryIcons: Record<string, string> = {
+  men: '👔',
+  women: '👗',
+  sneakers: '👟',
+  hoodies: '🧥',
+  jackets: '🧥',
+  pants: '👖',
+  shirts: '👕',
+  jeans: '👖',
+  coats: '🧥',
+  shorts: '🩳',
+  't-shirts': '👕',
+};
+
 export function LandingPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch trending products
+  const { data: trendingProducts, isLoading: isTrendingLoading } = useTrendingProducts(3);
+
+  // Fetch categories
+  const { data: apiCategories } = useCategories();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,15 +48,13 @@ export function LandingPage() {
     }
   };
 
-  const trendingItems = products.slice(0, 3);
-  const categories = [
-    { name: 'Men', icon: '👔' },
-    { name: 'Women', icon: '👗' },
-    { name: 'Sneakers', icon: '👟' },
-    { name: 'Hoodies', icon: '🧥' },
-    { name: 'Jackets', icon: '🧥' },
-    { name: 'Pants', icon: '👖' },
-  ];
+  // Use API categories or fallback to defaults
+  const categories = apiCategories && apiCategories.length > 0
+    ? apiCategories.slice(0, 6).map(cat => ({
+        ...cat,
+        icon: categoryIcons[cat.slug.toLowerCase()] || '🛍️'
+      }))
+    : defaultCategories;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -38,13 +66,25 @@ export function LandingPage() {
               AllInOne Shop
             </h1>
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); navigate('/search'); }}
+                className="text-slate-600 hover:text-slate-900 transition-colors"
+              >
                 Categories
               </a>
-              <a href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); navigate('/search'); }}
+                className="text-slate-600 hover:text-slate-900 transition-colors"
+              >
                 Brands
               </a>
-              <a href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); navigate('/search'); }}
+                className="text-slate-600 hover:text-slate-900 transition-colors"
+              >
                 Deals
               </a>
             </nav>
@@ -88,11 +128,27 @@ export function LandingPage() {
       {/* Trending Items */}
       <section className="container mx-auto px-4 py-12">
         <h3 className="text-2xl font-bold mb-6 text-slate-900">Trending Now</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {trendingItems.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {isTrendingLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : trendingProducts && trendingProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {trendingProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-slate-600">
+            <p>No trending products available at the moment.</p>
+            <Button 
+              onClick={() => navigate('/search')} 
+              className="mt-4"
+            >
+              Browse All Products
+            </Button>
+          </div>
+        )}
       </section>
 
       {/* Categories */}
@@ -102,7 +158,7 @@ export function LandingPage() {
           {categories.map((category) => (
             <button
               key={category.name}
-              onClick={() => navigate(`/search?category=${encodeURIComponent(category.name)}`)}
+              onClick={() => navigate(`/search?category=${encodeURIComponent(category.slug || category.name)}`)}
               className="bg-white border-2 border-slate-200 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition-all"
             >
               <div className="text-4xl mb-2">{category.icon}</div>
