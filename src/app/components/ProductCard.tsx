@@ -23,8 +23,9 @@ export function ProductCard({ product, showFavoriteButton = true }: ProductCardP
   const [isToggling, setIsToggling] = useState(false);
 
   // Find the lowest price - use lowestPrice if available, otherwise calculate
-  const lowestPrice = product.lowestPrice ?? Math.min(...product.prices.map((p) => p.price));
-  const lowestPriceEntry = product.prices.find((p) => p.price === lowestPrice);
+  const prices = product.prices || [];
+  const lowestPrice = product.lowestPrice ?? (prices.length > 0 ? Math.min(...prices.map((p) => p.price)) : 0);
+  const lowestPriceEntry = prices.find((p) => p.price === lowestPrice);
   const currency = lowestPriceEntry?.currency || '€';
 
   const isFavorite = favoriteIds?.includes(product.id) ?? false;
@@ -100,32 +101,34 @@ export function ProductCard({ product, showFavoriteButton = true }: ProductCardP
               {currency}{lowestPrice}
             </div>
             <div className="text-sm text-slate-600">
-              {product.storeCount > 1 
-                ? `Lowest of ${product.storeCount} stores`
+              {(product.storeCount || prices.length) > 1 
+                ? `Lowest of ${product.storeCount || prices.length} stores`
                 : 'Lowest price'
               }
             </div>
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="text-sm font-medium text-slate-700">Available at:</div>
-          {product.prices.slice(0, 3).map((price) => (
-            <div
-              key={price.id}
-              className="flex items-center justify-between text-sm"
-            >
-              <span className="text-slate-600">{price.store.name}</span>
-              <span className={`font-semibold ${price.price === lowestPrice ? 'text-green-600' : 'text-slate-900'}`}>
-                {price.currency}{price.price}
-              </span>
-            </div>
-          ))}
-          {product.prices.length > 3 && (
-            <div className="text-sm text-blue-600">
-              +{product.prices.length - 3} more stores
-            </div>
-          )}
-        </div>
+        {prices.length > 0 && (
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-slate-700">Available at:</div>
+            {prices.slice(0, 3).map((price, index) => (
+              <div
+                key={price.id || `price-${index}`}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-slate-600">{price.store?.name || 'Store'}</span>
+                <span className={`font-semibold ${price.price === lowestPrice ? 'text-green-600' : 'text-slate-900'}`}>
+                  {price.currency || '€'}{price.price}
+                </span>
+              </div>
+            ))}
+            {prices.length > 3 && (
+              <div className="text-sm text-blue-600">
+                +{prices.length - 3} more stores
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
