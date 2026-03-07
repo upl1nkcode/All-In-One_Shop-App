@@ -1,6 +1,6 @@
 # All-In-One_Shop-App
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Description to be inserted
 
 
 ## Getting Started
