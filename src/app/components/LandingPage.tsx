@@ -5,6 +5,7 @@ import { products } from '../data/mockData';
 import { ProductCard } from './ProductCard';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { UserMenu } from './UserMenu';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export function LandingPage() {
                 Deals
               </a>
             </nav>
+            <UserMenu />
           </div>
         </div>
       </header>

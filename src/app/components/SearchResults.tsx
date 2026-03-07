@@ -9,6 +9,7 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { UserMenu } from './UserMenu';
 
 export function SearchResults() {
   const navigate = useNavigate();
@@ -225,6 +226,7 @@ export function SearchResults() {
                 />
               </div>
             </form>
+            <UserMenu />
           </div>
         </div>
       </header>
