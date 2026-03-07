@@ -1,7 +1,7 @@
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { useState, useMemo } from 'react';
-import { products, brands, categories, stores } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { useProductSearch, useBrands, useCategories, useStores } from '../api/hooks';
 import { ProductCard } from './ProductCard';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -10,6 +10,7 @@ import { Label } from './ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { UserMenu } from './UserMenu';
+import type { SearchRequest } from '../api/types';
 
 export function SearchResults() {
   const navigate = useNavigate();
@@ -18,11 +19,54 @@ export function SearchResults() {
   const categoryParam = searchParams.get('category') || '';
 
   const [searchQuery, setSearchQuery] = useState(queryParam);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'All');
-  const [selectedStores, setSelectedStores] = useState<string[]>([]);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
-  const [sortBy, setSortBy] = useState<string>('price-low');
+  const [sortBy, setSortBy] = useState<SearchRequest['sortBy']>('price_asc');
+
+  // Fetch catalog data
+  const { data: brands = [] } = useBrands();
+  const { data: categories = [] } = useCategories();
+  const { data: stores = [] } = useStores();
+
+  // Product search
+  const { data: products = [], isLoading, mutate: searchProducts } = useProductSearch({
+    query: queryParam,
+    brandIds: selectedBrandIds.length > 0 ? selectedBrandIds : undefined,
+    categoryIds: selectedCategoryId ? [selectedCategoryId] : undefined,
+    storeIds: selectedStoreIds.length > 0 ? selectedStoreIds : undefined,
+    minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+    maxPrice: priceRange[1] < 500 ? priceRange[1] : undefined,
+    sortBy,
+  });
+
+  // Initial search and when params change
+  useEffect(() => {
+    const request: SearchRequest = {
+      query: queryParam || undefined,
+      brandIds: selectedBrandIds.length > 0 ? selectedBrandIds : undefined,
+      categoryIds: selectedCategoryId ? [selectedCategoryId] : undefined,
+      storeIds: selectedStoreIds.length > 0 ? selectedStoreIds : undefined,
+      minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+      maxPrice: priceRange[1] < 500 ? priceRange[1] : undefined,
+      sortBy,
+    };
+    searchProducts(request);
+  }, [queryParam, selectedBrandIds, selectedCategoryId, selectedStoreIds, priceRange, sortBy, searchProducts]);
+
+  // Set category from URL param
+  useEffect(() => {
+    if (categoryParam && categories.length > 0) {
+      const category = categories.find(c => 
+        c.name.toLowerCase() === categoryParam.toLowerCase() || 
+        c.slug === categoryParam.toLowerCase()
+      );
+      if (category) {
+        setSelectedCategoryId(category.id);
+      }
+    }
+  }, [categoryParam, categories]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,87 +75,30 @@ export function SearchResults() {
     }
   };
 
-  const toggleBrand = (brand: string) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+  const toggleBrand = (brandId: string) => {
+    setSelectedBrandIds((prev) =>
+      prev.includes(brandId) ? prev.filter((b) => b !== brandId) : [...prev, brandId]
     );
   };
 
   const toggleStore = (storeId: string) => {
-    setSelectedStores((prev) =>
+    setSelectedStoreIds((prev) =>
       prev.includes(storeId) ? prev.filter((s) => s !== storeId) : [...prev, storeId]
     );
   };
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...products];
-
-    // Filter by search query
-    if (queryParam) {
-      const query = queryParam.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.brand.toLowerCase().includes(query) ||
-          p.category.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory && selectedCategory !== 'All') {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
-    }
-
-    // Filter by brands
-    if (selectedBrands.length > 0) {
-      filtered = filtered.filter((p) => selectedBrands.includes(p.brand));
-    }
-
-    // Filter by stores
-    if (selectedStores.length > 0) {
-      filtered = filtered.filter((p) =>
-        p.prices.some((price) => selectedStores.includes(price.storeId))
-      );
-    }
-
-    // Filter by price range
-    filtered = filtered.filter((p) => {
-      const lowestPrice = Math.min(...p.prices.map((price) => price.price));
-      return lowestPrice >= priceRange[0] && lowestPrice <= priceRange[1];
-    });
-
-    // Sort products
-    if (sortBy === 'price-low') {
-      filtered.sort((a, b) => {
-        const aLowest = Math.min(...a.prices.map((p) => p.price));
-        const bLowest = Math.min(...b.prices.map((p) => p.price));
-        return aLowest - bLowest;
-      });
-    } else if (sortBy === 'price-high') {
-      filtered.sort((a, b) => {
-        const aLowest = Math.min(...a.prices.map((p) => p.price));
-        const bLowest = Math.min(...b.prices.map((p) => p.price));
-        return bLowest - aLowest;
-      });
-    } else if (sortBy === 'brand') {
-      filtered.sort((a, b) => a.brand.localeCompare(b.brand));
-    }
-
-    return filtered;
-  }, [queryParam, selectedCategory, selectedBrands, selectedStores, priceRange, sortBy]);
-
   const clearFilters = () => {
-    setSelectedBrands([]);
-    setSelectedCategory('All');
-    setSelectedStores([]);
+    setSelectedBrandIds([]);
+    setSelectedCategoryId('');
+    setSelectedStoreIds([]);
     setPriceRange([0, 500]);
   };
 
   const activeFiltersCount =
-    selectedBrands.length +
-    selectedStores.length +
-    (selectedCategory !== 'All' ? 1 : 0);
+    selectedBrandIds.length +
+    selectedStoreIds.length +
+    (selectedCategoryId ? 1 : 0) +
+    (priceRange[0] > 0 || priceRange[1] < 500 ? 1 : 0);
 
   const FiltersContent = () => (
     <div className="space-y-6">
@@ -119,16 +106,26 @@ export function SearchResults() {
       <div>
         <h4 className="font-semibold mb-3 text-slate-900">Category</h4>
         <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="category"
+              checked={!selectedCategoryId}
+              onChange={() => setSelectedCategoryId('')}
+              className="w-4 h-4 text-blue-600"
+            />
+            <span className="text-slate-700">All</span>
+          </label>
           {categories.map((category) => (
-            <label key={category} className="flex items-center gap-2 cursor-pointer">
+            <label key={category.id} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="category"
-                checked={selectedCategory === category}
-                onChange={() => setSelectedCategory(category)}
+                checked={selectedCategoryId === category.id}
+                onChange={() => setSelectedCategoryId(category.id)}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="text-slate-700">{category}</span>
+              <span className="text-slate-700">{category.name}</span>
             </label>
           ))}
         </div>
@@ -139,14 +136,14 @@ export function SearchResults() {
         <h4 className="font-semibold mb-3 text-slate-900">Brand</h4>
         <div className="space-y-2">
           {brands.map((brand) => (
-            <div key={brand} className="flex items-center gap-2">
+            <div key={brand.id} className="flex items-center gap-2">
               <Checkbox
-                id={`brand-${brand}`}
-                checked={selectedBrands.includes(brand)}
-                onCheckedChange={() => toggleBrand(brand)}
+                id={`brand-${brand.id}`}
+                checked={selectedBrandIds.includes(brand.id)}
+                onCheckedChange={() => toggleBrand(brand.id)}
               />
-              <Label htmlFor={`brand-${brand}`} className="text-slate-700 cursor-pointer">
-                {brand}
+              <Label htmlFor={`brand-${brand.id}`} className="text-slate-700 cursor-pointer">
+                {brand.name}
               </Label>
             </div>
           ))}
@@ -161,7 +158,7 @@ export function SearchResults() {
             <div key={store.id} className="flex items-center gap-2">
               <Checkbox
                 id={`store-${store.id}`}
-                checked={selectedStores.includes(store.id)}
+                checked={selectedStoreIds.includes(store.id)}
                 onCheckedChange={() => toggleStore(store.id)}
               />
               <Label htmlFor={`store-${store.id}`} className="text-slate-700 cursor-pointer">
@@ -257,7 +254,9 @@ export function SearchResults() {
                   <h2 className="font-bold text-xl text-slate-900">
                     {queryParam ? `Results for "${queryParam}"` : 'All Products'}
                   </h2>
-                  <p className="text-slate-600">{filteredProducts.length} products found</p>
+                  <p className="text-slate-600">
+                    {isLoading ? 'Searching...' : `${products.length} products found`}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   {/* Mobile Filter Button */}
@@ -283,14 +282,18 @@ export function SearchResults() {
                     </SheetContent>
                   </Sheet>
 
-                  <Select value={sortBy} onValueChange={setSortBy}>
+                  <Select 
+                    value={sortBy} 
+                    onValueChange={(value) => setSortBy(value as SearchRequest['sortBy'])}
+                  >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="brand">Brand A-Z</SelectItem>
+                      <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                      <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                      <SelectItem value="name_asc">Name A-Z</SelectItem>
+                      <SelectItem value="name_desc">Name Z-A</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -300,17 +303,20 @@ export function SearchResults() {
             {/* Active Filters Pills */}
             {activeFiltersCount > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
-                {selectedBrands.map((brand) => (
-                  <button
-                    key={brand}
-                    onClick={() => toggleBrand(brand)}
-                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1 hover:bg-blue-200"
-                  >
-                    {brand}
-                    <X size={14} />
-                  </button>
-                ))}
-                {selectedStores.map((storeId) => {
+                {selectedBrandIds.map((brandId) => {
+                  const brand = brands.find((b) => b.id === brandId);
+                  return (
+                    <button
+                      key={brandId}
+                      onClick={() => toggleBrand(brandId)}
+                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1 hover:bg-blue-200"
+                    >
+                      {brand?.name}
+                      <X size={14} />
+                    </button>
+                  );
+                })}
+                {selectedStoreIds.map((storeId) => {
                   const store = stores.find((s) => s.id === storeId);
                   return (
                     <button
@@ -323,12 +329,12 @@ export function SearchResults() {
                     </button>
                   );
                 })}
-                {selectedCategory !== 'All' && (
+                {selectedCategoryId && (
                   <button
-                    onClick={() => setSelectedCategory('All')}
+                    onClick={() => setSelectedCategoryId('')}
                     className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1 hover:bg-blue-200"
                   >
-                    {selectedCategory}
+                    {categories.find(c => c.id === selectedCategoryId)?.name}
                     <X size={14} />
                   </button>
                 )}
@@ -336,9 +342,13 @@ export function SearchResults() {
             )}
 
             {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

@@ -1,16 +1,78 @@
-import { ExternalLink, ArrowLeft, Heart, Share2 } from 'lucide-react';
+import { ExternalLink, ArrowLeft, Heart, Share2, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
-import { products, stores } from '../data/mockData';
+import { useState } from 'react';
+import { useProduct, useSimilarProducts, useFavoriteIds } from '../api/hooks';
+import { favoritesApi } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
+import { toast } from 'sonner';
+import { mutate } from 'swr';
 
 export function ProductDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const { data: product, isLoading, error } = useProduct(id);
+  const { data: similarProducts } = useSimilarProducts(id, 4);
+  const { isAuthenticated } = useAuth();
+  const { data: favoriteIds } = useFavoriteIds();
+  const [isToggling, setIsToggling] = useState(false);
 
-  if (!product) {
+  const isFavorite = favoriteIds?.includes(id || '') ?? false;
+
+  const handleFavoriteClick = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to save favorites');
+      return;
+    }
+
+    if (!id) return;
+
+    setIsToggling(true);
+    try {
+      if (isFavorite) {
+        await favoritesApi.remove(id);
+        toast.success('Removed from favorites');
+      } else {
+        await favoritesApi.add(id);
+        toast.success('Added to favorites');
+      }
+      mutate('favorite-ids');
+      mutate('favorites');
+    } catch (error) {
+      toast.error('Failed to update favorites');
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name,
+          text: `Check out ${product?.name} on AllInOne Shop!`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -21,7 +83,7 @@ export function ProductDetail() {
     );
   }
 
-  const lowestPrice = Math.min(...product.prices.map((p) => p.price));
+  const lowestPrice = product.lowestPrice ?? Math.min(...product.prices.map((p) => p.price));
   const sortedPrices = [...product.prices].sort((a, b) => a.price - b.price);
 
   return (
@@ -46,10 +108,18 @@ export function ProductDetail() {
               </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon">
-                <Heart size={20} />
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleFavoriteClick}
+                disabled={isToggling}
+              >
+                <Heart 
+                  size={20} 
+                  className={isFavorite ? 'fill-red-500 text-red-500' : ''} 
+                />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={handleShare}>
                 <Share2 size={20} />
               </Button>
             </div>
@@ -63,21 +133,38 @@ export function ProductDetail() {
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="aspect-square">
               <img
-                src={product.imageUrl}
+                src={product.imageUrl || '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
+            {/* Additional Images */}
+            {product.additionalImages && product.additionalImages.length > 0 && (
+              <div className="flex gap-2 p-4 overflow-x-auto">
+                {product.additionalImages.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img}
+                    alt={`${product.name} ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-md cursor-pointer hover:ring-2 hover:ring-blue-500"
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <Badge variant="secondary" className="mb-2">
-                {product.brand}
-              </Badge>
+              {product.brand && (
+                <Badge variant="secondary" className="mb-2">
+                  {product.brand.name}
+                </Badge>
+              )}
               <h1 className="text-3xl font-bold mb-2 text-slate-900">{product.name}</h1>
-              <p className="text-slate-600">{product.category}</p>
+              {product.category && (
+                <p className="text-slate-600">{product.category.name}</p>
+              )}
             </div>
 
             {/* Price Info */}
@@ -86,31 +173,54 @@ export function ProductDetail() {
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-sm text-slate-600">Lowest price:</span>
                   <span className="text-4xl font-bold text-slate-900">
-                    €{lowestPrice}
+                    {sortedPrices[0]?.currency || '€'}{lowestPrice}
                   </span>
                 </div>
-                <p className="text-sm text-slate-600">
-                  Available at {product.prices.length} stores
+                {product.highestPrice && product.highestPrice !== lowestPrice && (
+                  <p className="text-sm text-slate-600">
+                    Save up to {sortedPrices[0]?.currency || '€'}{(product.highestPrice - lowestPrice).toFixed(2)} compared to other stores
+                  </p>
+                )}
+                <p className="text-sm text-slate-600 mt-1">
+                  Available at {product.storeCount || product.prices.length} stores
                 </p>
               </CardContent>
             </Card>
 
             {/* Description */}
-            <div>
-              <h3 className="font-bold text-lg mb-2 text-slate-900">Description</h3>
-              <p className="text-slate-600 leading-relaxed">{product.description}</p>
-            </div>
+            {product.description && (
+              <div>
+                <h3 className="font-bold text-lg mb-2 text-slate-900">Description</h3>
+                <p className="text-slate-600 leading-relaxed">{product.description}</p>
+              </div>
+            )}
 
             {/* Product Details */}
             <div className="bg-white rounded-lg p-4 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Brand</span>
-                <span className="font-semibold text-slate-900">{product.brand}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Category</span>
-                <span className="font-semibold text-slate-900">{product.category}</span>
-              </div>
+              {product.brand && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Brand</span>
+                  <span className="font-semibold text-slate-900">{product.brand.name}</span>
+                </div>
+              )}
+              {product.category && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Category</span>
+                  <span className="font-semibold text-slate-900">{product.category.name}</span>
+                </div>
+              )}
+              {product.sizes && product.sizes.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Available Sizes</span>
+                  <span className="font-semibold text-slate-900">{product.sizes.join(', ')}</span>
+                </div>
+              )}
+              {product.colors && product.colors.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Colors</span>
+                  <span className="font-semibold text-slate-900">{product.colors.join(', ')}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-600">Availability</span>
                 <span className="font-semibold text-green-600">In Stock</span>
@@ -124,11 +234,10 @@ export function ProductDetail() {
           <h2 className="text-2xl font-bold mb-6 text-slate-900">Where to Buy</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sortedPrices.map((price) => {
-              const store = stores.find((s) => s.id === price.storeId);
               const isLowest = price.price === lowestPrice;
               return (
                 <Card
-                  key={price.storeId}
+                  key={price.id}
                   className={`hover:shadow-lg transition-shadow ${
                     isLowest ? 'border-2 border-green-500' : ''
                   }`}
@@ -137,28 +246,52 @@ export function ProductDetail() {
                     {isLowest && (
                       <Badge className="mb-2 bg-green-500">Best Price</Badge>
                     )}
+                    {price.savings && price.savings > 0 && (
+                      <Badge variant="destructive" className="mb-2 ml-2">
+                        Save {price.currency}{price.savings.toFixed(2)}
+                      </Badge>
+                    )}
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="font-bold text-lg text-slate-900">{store?.name}</h3>
-                        <p className="text-sm text-slate-600">{store?.website}</p>
+                        <h3 className="font-bold text-lg text-slate-900">{price.store.name}</h3>
+                        <p className="text-sm text-slate-600">{price.store.website}</p>
                       </div>
+                      {price.store.logoUrl && (
+                        <img 
+                          src={price.store.logoUrl} 
+                          alt={price.store.name}
+                          className="h-8 w-auto object-contain"
+                        />
+                      )}
                     </div>
                     <div className="flex items-baseline justify-between mb-4">
-                      <span className="text-3xl font-bold text-slate-900">
-                        {price.currency}
-                        {price.price}
-                      </span>
+                      <div>
+                        <span className="text-3xl font-bold text-slate-900">
+                          {price.currency}{price.price}
+                        </span>
+                        {price.originalPrice && price.originalPrice > price.price && (
+                          <span className="ml-2 text-lg text-slate-400 line-through">
+                            {price.currency}{price.originalPrice}
+                          </span>
+                        )}
+                      </div>
                       {!isLowest && (
                         <span className="text-sm text-red-600">
-                          +€{(price.price - lowestPrice).toFixed(2)}
+                          +{price.currency}{(price.price - lowestPrice).toFixed(2)}
                         </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className={`text-sm ${price.inStock ? 'text-green-600' : 'text-red-600'}`}>
+                        {price.inStock ? 'In Stock' : 'Out of Stock'}
+                      </span>
                     </div>
                     <Button
                       className="w-full"
                       onClick={() => window.open(price.productUrl, '_blank')}
+                      disabled={!price.inStock}
                     >
-                      Buy at {store?.name}
+                      Buy at {price.store.name}
                       <ExternalLink size={16} className="ml-2" />
                     </Button>
                   </CardContent>
@@ -169,13 +302,11 @@ export function ProductDetail() {
         </div>
 
         {/* Similar Products */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6 text-slate-900">Similar Products</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products
-              .filter((p) => p.category === product.category && p.id !== product.id)
-              .slice(0, 4)
-              .map((p) => (
+        {similarProducts && similarProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-6 text-slate-900">Similar Products</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {similarProducts.map((p) => (
                 <Card
                   key={p.id}
                   className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
@@ -183,26 +314,29 @@ export function ProductDetail() {
                 >
                   <div className="aspect-square overflow-hidden bg-slate-100">
                     <img
-                      src={p.imageUrl}
+                      src={p.imageUrl || '/placeholder.jpg'}
                       alt={p.name}
                       className="w-full h-full object-cover hover:scale-105 transition-transform"
                     />
                   </div>
                   <CardContent className="p-4">
-                    <Badge variant="secondary" className="mb-2">
-                      {p.brand}
-                    </Badge>
+                    {p.brand && (
+                      <Badge variant="secondary" className="mb-2">
+                        {p.brand.name}
+                      </Badge>
+                    )}
                     <h3 className="font-semibold mb-2 text-slate-900 line-clamp-2">
                       {p.name}
                     </h3>
                     <div className="text-xl font-bold text-slate-900">
-                      €{Math.min(...p.prices.map((price) => price.price))}
+                      {p.prices[0]?.currency || '€'}{p.lowestPrice ?? Math.min(...p.prices.map((price) => price.price))}
                     </div>
                   </CardContent>
                 </Card>
               ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
