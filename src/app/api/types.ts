@@ -91,3 +91,9 @@ export interface RegisterRequest {
   firstName?: string;
   lastName?: string;
 }
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+}

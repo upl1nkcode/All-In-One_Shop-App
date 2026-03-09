@@ -124,6 +124,27 @@ export const authApi = {
   getCurrentUser: () => apiRequest<User>('/auth/me'),
 };
 
+// Search API
+export const searchApi = {
+  getTrending: (limit = 10) => apiRequest<string[]>(`/search/trending?limit=${limit}`),
+
+  getRecent: (limit = 10) => apiRequest<string[]>(`/search/recent?limit=${limit}`),
+
+  clearHistory: () =>
+    apiRequest<void>('/search/history', { method: 'DELETE' }),
+};
+
+// User API
+export const userApi = {
+  getProfile: () => apiRequest<User>('/users/profile'),
+
+  updateProfile: (data: { firstName?: string; lastName?: string; avatarUrl?: string }) =>
+    apiRequest<User>('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
 // Favorites API
 export const favoritesApi = {
   getAll: () => apiRequest<Product[]>('/favorites'),

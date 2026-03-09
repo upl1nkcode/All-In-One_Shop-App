@@ -1,8 +1,8 @@
 // SWR hooks for data fetching
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { productApi, catalogApi, favoritesApi, authApi } from './client';
-import type { SearchRequest, Product, Category, Brand, Store } from './types';
+import { productApi, catalogApi, favoritesApi, authApi, searchApi, userApi } from './client';
+import type { SearchRequest, Product, Category, Brand, Store, UpdateProfileRequest } from './types';
 import { products as mockProducts, stores as mockStores, categories as mockCategories, brands as mockBrands } from '../data/mockData';
 
 // Helper to transform mock data to API format
@@ -214,4 +214,56 @@ export function useCurrentUser() {
     ...swrOptions,
     revalidateOnFocus: false,
   });
+}
+
+// Search history hooks
+export function useTrendingSearches(limit = 10) {
+  return useSWR('trending-searches', async () => {
+    try {
+      const response = await searchApi.getTrending(limit);
+      return response.data;
+    } catch {
+      return [];
+    }
+  }, swrOptions);
+}
+
+export function useRecentSearches(limit = 10) {
+  return useSWR('recent-searches', async () => {
+    try {
+      const response = await searchApi.getRecent(limit);
+      return response.data;
+    } catch {
+      return [];
+    }
+  }, swrOptions);
+}
+
+export function useClearSearchHistory() {
+  return useSWRMutation(
+    'recent-searches',
+    () => searchApi.clearHistory()
+  );
+}
+
+// User profile hooks
+export function useUserProfile() {
+  return useSWR('user-profile', async () => {
+    try {
+      const response = await userApi.getProfile();
+      return response.data;
+    } catch {
+      return null;
+    }
+  }, {
+    ...swrOptions,
+    revalidateOnFocus: false,
+  });
+}
+
+export function useUpdateProfile() {
+  return useSWRMutation(
+    'user-profile',
+    (_, { arg }: { arg: UpdateProfileRequest }) => userApi.updateProfile(arg)
+  );
 }

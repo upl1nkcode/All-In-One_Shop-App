@@ -54,11 +54,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/brands/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/stores/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/products/search").permitAll()
+                        // Search endpoints
+                        .requestMatchers(HttpMethod.GET, "/search/trending").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/search/recent").permitAll()
                         // Swagger/OpenAPI
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         // Protected endpoints
                         .requestMatchers("/favorites/**").authenticated()
                         .requestMatchers("/users/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/search/history").authenticated()
                         .anyRequest().permitAll()
                 )
                 .authenticationProvider(authenticationProvider())
