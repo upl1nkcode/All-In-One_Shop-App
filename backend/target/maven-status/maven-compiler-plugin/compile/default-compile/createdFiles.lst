@@ -19,6 +19,7 @@ com\allinoneshop\entity\ProductPrice.class
 com\allinoneshop\service\AuthService.class
 com\allinoneshop\dto\StoreDTO.class
 com\allinoneshop\service\FavoriteService.class
+com\allinoneshop\service\SearchHistoryService.class
 com\allinoneshop\dto\CategoryDTO.class
 com\allinoneshop\entity\User$UserBuilder.class
 com\allinoneshop\dto\SearchRequest.class
