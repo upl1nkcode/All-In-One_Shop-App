@@ -83,6 +83,13 @@
             <optional>true</optional>
         </dependency>
         
+        <!-- Meilisearch for Full Text Search -->
+        <dependency>
+            <groupId>com.meilisearch.sdk</groupId>
+            <artifactId>meilisearch-java</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+        
         <!-- SpringDoc OpenAPI for API documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>

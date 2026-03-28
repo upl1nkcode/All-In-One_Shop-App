@@ -14,7 +14,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
@@ -34,7 +34,7 @@ jwt:
 
 # CORS Configuration
 cors:
-  allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+  allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:3001,http://192.168.100.49:3001}
 
 # Logging
 logging:
@@ -50,3 +50,9 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+
+# Meilisearch Integration
+meilisearch:
+  host: ${MEILI_HOST:http://localhost:7700}
+  api-key: ${MEILI_MASTER_KEY:}
+

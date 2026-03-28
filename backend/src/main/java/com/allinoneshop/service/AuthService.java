@@ -3,6 +3,7 @@ package com.allinoneshop.service;
 import com.allinoneshop.dto.UserDTO;
 import com.allinoneshop.dto.auth.*;
 import com.allinoneshop.entity.User;
+import com.allinoneshop.entity.enums.Role;
 import com.allinoneshop.repository.UserRepository;
 import com.allinoneshop.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .role(Role.ADMIN)
                 .build();
 
         user = userRepository.save(user);
@@ -77,6 +79,7 @@ public class AuthService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole().name())
                 .build();
     }
 }

@@ -13,4 +13,5 @@ public class StoreDTO {
     private String name;
     private String website;
     private String logoUrl;
+    private Boolean isActive;
 }

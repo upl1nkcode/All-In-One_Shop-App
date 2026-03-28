@@ -18,6 +18,8 @@ public class ProductDTO {
     private String[] additionalImages;
     private String[] sizes;
     private String[] colors;
+    private String gender;
+    private Boolean isActive;
     private BrandDTO brand;
     private CategoryDTO category;
     private List<ProductPriceDTO> prices;

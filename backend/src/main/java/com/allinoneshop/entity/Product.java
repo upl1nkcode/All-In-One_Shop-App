@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.allinoneshop.entity.enums.Gender;
 
 @Entity
 @Table(name = "products")
@@ -53,8 +54,17 @@ public class Product {
     @JdbcTypeCode(SqlTypes.ARRAY)
     private String[] colors;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductPrice> prices;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(length = 20)
+    private Gender gender;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @CreationTimestamp
     @Column(name = "created_at")

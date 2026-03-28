@@ -50,8 +50,8 @@ public class ProductPrice {
     private Boolean inStock = true;
 
     @UpdateTimestamp
-    @Column(name = "last_updated")
-    private OffsetDateTime lastUpdated;
+    @Column(name = "last_checked")
+    private OffsetDateTime lastChecked;
 
     @CreationTimestamp
     @Column(name = "created_at")

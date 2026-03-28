@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,5 +77,27 @@ public class ProductController {
             @RequestParam(defaultValue = "8") int limit) {
         List<ProductDTO> products = productService.getTrendingProducts(limit);
         return ResponseEntity.ok(ApiResponse.success(products));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create product")
+    public ResponseEntity<ApiResponse<ProductDTO>> createProduct(@RequestBody ProductDTO dto) {
+        return ResponseEntity.ok(ApiResponse.success(productService.createProduct(dto)));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update product")
+    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(@PathVariable UUID id, @RequestBody ProductDTO dto) {
+        return ResponseEntity.ok(ApiResponse.success(productService.updateProduct(id, dto)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete product")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable UUID id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

@@ -88,6 +88,30 @@ public class ProductService {
     }
 
     @Transactional
+    public void deleteProduct(UUID id) {
+        Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        productRepository.delete(product);
+    }
+
+    @Transactional
+    public ProductDTO updateProduct(UUID id, ProductDTO dto) {
+        Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setImageUrl(dto.getImageUrl());
+        return convertToDTO(productRepository.save(product));
+    }
+
+    @Transactional
+    public ProductDTO createProduct(ProductDTO dto) {
+        Product product = new Product();
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setImageUrl(dto.getImageUrl());
+        return convertToDTO(productRepository.save(product));
+    }
+
+    @Transactional
     private void saveSearchHistory(String query, int resultsCount, UUID userId) {
         SearchHistory history = SearchHistory.builder()
                 .searchQuery(query)
@@ -158,13 +182,24 @@ public class ProductService {
     private List<Product> applySorting(List<Product> products, String sortBy) {
         if (sortBy == null) return products;
 
-        Comparator<Product> comparator = switch (sortBy.toLowerCase()) {
-            case "price_asc" -> Comparator.comparing(p -> getLowestPrice(p));
-            case "price_desc" -> Comparator.comparing(p -> getLowestPrice(p), Comparator.reverseOrder());
-            case "name_asc" -> Comparator.comparing(Product::getName);
-            case "name_desc" -> Comparator.comparing(Product::getName, Comparator.reverseOrder());
-            default -> null;
-        };
+        Comparator<Product> comparator;
+        switch (sortBy.toLowerCase()) {
+            case "price_asc":
+                comparator = Comparator.comparing(p -> getLowestPrice(p));
+                break;
+            case "price_desc":
+                comparator = Comparator.comparing(p -> getLowestPrice(p), Comparator.reverseOrder());
+                break;
+            case "name_asc":
+                comparator = Comparator.comparing(Product::getName);
+                break;
+            case "name_desc":
+                comparator = Comparator.comparing(Product::getName, Comparator.reverseOrder());
+                break;
+            default:
+                comparator = null;
+                break;
+        }
 
         if (comparator != null) {
             return products.stream().sorted(comparator).collect(Collectors.toList());
@@ -205,6 +240,8 @@ public class ProductService {
                 .additionalImages(product.getAdditionalImages())
                 .sizes(product.getSizes())
                 .colors(product.getColors())
+                .gender(product.getGender() != null ? product.getGender().name() : null)
+                .isActive(product.getIsActive())
                 .brand(product.getBrand() != null ? convertBrandToDTO(product.getBrand()) : null)
                 .category(product.getCategory() != null ? convertCategoryToDTO(product.getCategory()) : null)
                 .prices(priceDTOs)
@@ -238,6 +275,7 @@ public class ProductService {
                 .name(store.getName())
                 .website(store.getWebsite())
                 .logoUrl(store.getLogoUrl())
+                .isActive(store.getIsActive())
                 .build();
     }
 

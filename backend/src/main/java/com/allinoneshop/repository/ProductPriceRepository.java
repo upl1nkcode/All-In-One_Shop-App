@@ -32,4 +32,6 @@ public interface ProductPriceRepository extends JpaRepository<ProductPrice, UUID
     @Query("SELECT pp FROM ProductPrice pp " +
            "WHERE pp.product.id = :productId AND pp.store.id = :storeId")
     ProductPrice findByProductIdAndStoreId(@Param("productId") UUID productId, @Param("storeId") UUID storeId);
+
+    void deleteByStoreId(UUID storeId);
 }

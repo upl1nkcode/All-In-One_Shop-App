@@ -5,7 +5,11 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.security.core.userdetails.UserDetails;
+import com.allinoneshop.entity.enums.Role;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -41,6 +45,12 @@ public class User implements UserDetails {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false)
+    @Builder.Default
+    private Role role = Role.USER;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Favorite> favorites;
 
@@ -55,7 +65,7 @@ public class User implements UserDetails {
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.allinoneshop.service;
 
 import com.allinoneshop.dto.UserDTO;
 import com.allinoneshop.entity.User;
+import com.allinoneshop.entity.enums.Role;
 import com.allinoneshop.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole().name())
                 .build();
     }
 }

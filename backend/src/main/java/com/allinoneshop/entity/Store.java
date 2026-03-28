@@ -30,6 +30,10 @@ public class Store {
     @Column(name = "logo_url", length = 500)
     private String logoUrl;
 
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
