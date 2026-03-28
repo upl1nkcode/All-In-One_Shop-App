@@ -20,6 +20,8 @@ public class ProductDTO {
     private String[] colors;
     private String gender;
     private Boolean isActive;
+    private UUID brandId;
+    private UUID categoryId;
     private BrandDTO brand;
     private CategoryDTO category;
     private List<ProductPriceDTO> prices;

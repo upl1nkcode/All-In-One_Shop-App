@@ -2,6 +2,7 @@ package com.allinoneshop.service;
 
 import com.allinoneshop.dto.*;
 import com.allinoneshop.entity.*;
+import com.allinoneshop.entity.enums.Gender;
 import com.allinoneshop.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +19,8 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final BrandRepository brandRepository;
+    private final CategoryRepository categoryRepository;
     private final SearchHistoryRepository searchHistoryRepository;
     private final UserRepository userRepository;
 
@@ -96,19 +99,38 @@ public class ProductService {
     @Transactional
     public ProductDTO updateProduct(UUID id, ProductDTO dto) {
         Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
-        product.setName(dto.getName());
-        product.setDescription(dto.getDescription());
-        product.setImageUrl(dto.getImageUrl());
+        applyDtoToProduct(product, dto);
         return convertToDTO(productRepository.save(product));
     }
 
     @Transactional
     public ProductDTO createProduct(ProductDTO dto) {
         Product product = new Product();
+        product.setIsActive(true);
+        applyDtoToProduct(product, dto);
+        return convertToDTO(productRepository.save(product));
+    }
+
+    private void applyDtoToProduct(Product product, ProductDTO dto) {
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
         product.setImageUrl(dto.getImageUrl());
-        return convertToDTO(productRepository.save(product));
+        if (dto.getGender() != null) {
+            try { product.setGender(Gender.valueOf(dto.getGender().toUpperCase())); }
+            catch (Exception e) { product.setGender(Gender.UNISEX); }
+        }
+        if (dto.getBrandId() != null) {
+            brandRepository.findById(dto.getBrandId()).ifPresent(product::setBrand);
+        } else if (dto.getBrand() != null && dto.getBrand().getId() != null) {
+            brandRepository.findById(dto.getBrand().getId()).ifPresent(product::setBrand);
+        }
+        if (dto.getCategoryId() != null) {
+            categoryRepository.findById(dto.getCategoryId()).ifPresent(product::setCategory);
+        } else if (dto.getCategory() != null && dto.getCategory().getId() != null) {
+            categoryRepository.findById(dto.getCategory().getId()).ifPresent(product::setCategory);
+        }
+        if (dto.getSizes() != null) product.setSizes(dto.getSizes());
+        if (dto.getColors() != null) product.setColors(dto.getColors());
     }
 
     @Transactional

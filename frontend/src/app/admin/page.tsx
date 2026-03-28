@@ -27,12 +27,13 @@ export default function AdminDashboard() {
   const handleRunScraper = async () => {
     setScraping(true);
     try {
-      const res = await adminApi.runScraper();
-      toast.success(`Scraper complete! ${res.data.totalProducts} products across ${res.data.totalStores} stores.`);
-      loadData();
+      await adminApi.runScraper();
+      toast.success('Scraper triggered! Products will appear as they are scraped. Refresh in a minute.');
+      // Reload after a delay to pick up newly scraped products
+      setTimeout(() => loadData(), 15000);
+      setTimeout(() => { loadData(); setScraping(false); }, 45000);
     } catch (err: any) {
       toast.error(err.message || 'Scraper failed');
-    } finally {
       setScraping(false);
     }
   };

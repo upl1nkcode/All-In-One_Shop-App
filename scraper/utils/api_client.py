@@ -1,5 +1,6 @@
 """API client for pushing scraped data to the AllInOne Shop backend."""
 import logging
+import time
 import requests
 from scrapers.base import ScrapedProduct
 
@@ -16,7 +17,7 @@ class ApiClient:
             self.session.headers["X-API-Key"] = api_key
         self.session.headers["Content-Type"] = "application/json"
 
-    def upsert_product(self, product: ScrapedProduct) -> dict:
+    def upsert_product(self, product: ScrapedProduct, retries: int = 3) -> dict:
         """
         Push a scraped product to the backend.
         The backend handles deduplication by matching product name + brand.
@@ -40,10 +41,17 @@ class ApiClient:
             },
         }
 
-        response = self.session.post(
-            f"{self.base_url}/admin/ingest",
-            json=payload,
-            timeout=10,
-        )
-        response.raise_for_status()
-        return response.json()
+        for attempt in range(retries):
+            try:
+                response = self.session.post(
+                    f"{self.base_url}/admin/ingest",
+                    json=payload,
+                    timeout=15,
+                )
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.ConnectionError:
+                if attempt < retries - 1:
+                    time.sleep(3)
+                else:
+                    raise
