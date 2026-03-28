@@ -1,5 +1,5 @@
 # All-In-One Shop App - Complete Architecture Guide
-
+##! description is out of date ( will update ) I now wire everything trough docker and the scraper is a python feature
 ## 📋 Table of Contents
 1. [Project Overview](#project-overview)
 2. [Technology Stack](#technology-stack)
