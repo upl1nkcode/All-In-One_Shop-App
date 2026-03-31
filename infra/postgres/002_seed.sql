@@ -42,7 +42,7 @@ ON CONFLICT (name) DO NOTHING;
 -- ADMIN USER (password: admin123 — BCrypt hash)
 INSERT INTO users (id, email, password_hash, first_name, last_name, role) VALUES
   ('f1000000-0000-0000-0000-000000000001', 'admin@allinone.com',
-   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+   '$2b$10$zWrDqZFTnYXAFoaAVtej5.iS9.kPGbtj/dnfrxY.f2/BLOdn/ec1e',
    'Admin', 'User', 'ADMIN')
 ON CONFLICT (email) DO NOTHING;
 

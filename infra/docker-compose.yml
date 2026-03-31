@@ -74,14 +74,27 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        # Baked into the Next.js routes manifest at build time.
+        # Must use the internal Docker service name so the server-side
+        # rewrite proxy can reach the backend container.
+        NEXT_PUBLIC_API_URL: http://backend:8080/api
     container_name: allinone-frontend
     restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
     ports:
       - "3000:3000"
     depends_on:
       - backend
+
+  # ── Activity Monitor (Node.js) ──────────────────────────────
+  activity-monitor:
+    build:
+      context: ../activity-monitor
+      dockerfile: Dockerfile
+    container_name: allinone-activity-monitor
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
 
   # ── Scraper (Python) ────────────────────────────────────────
   scraper:

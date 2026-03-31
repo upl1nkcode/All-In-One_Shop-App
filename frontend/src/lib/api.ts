@@ -5,7 +5,7 @@ import type {
   AuthResponse, SearchParams, PagedResponse, DashboardStats,
 } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_URL = '/api';
 
 // ── Token management ─────────────────────────────────────────
 function getToken(): string | null {

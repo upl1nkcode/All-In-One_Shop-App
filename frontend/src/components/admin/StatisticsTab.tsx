@@ -6,7 +6,7 @@ export function StatisticsTab({ products, stores, categories, brands }: any) {
   
   // 1. Brand Performance
   const brandData = brands.map((brand: any) => {
-    const brandProducts = products.filter((p: any) => p.brandId === brand.id);
+    const brandProducts = products.filter((p: any) => p.brand?.id === brand.id);
     const avgPrice = brandProducts.reduce((sum: number, p: any) => {
       const prices = p.prices?.map((pr: any) => pr.price) || [];
       return sum + (prices.length ? prices[0] : 0);
@@ -22,7 +22,7 @@ export function StatisticsTab({ products, stores, categories, brands }: any) {
   // 2. Category Distribution
   const categoryData = categories.map((cat: any) => ({
     name: cat.name,
-    value: products.filter((p: any) => p.categoryId === cat.id).length
+    value: products.filter((p: any) => p.category?.id === cat.id).length
   })).filter((c: any) => c.value > 0);
 
   // 3. Price Distribution Map

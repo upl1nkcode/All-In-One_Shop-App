@@ -175,8 +175,9 @@ public class ProductService {
     }
 
     private boolean filterByPrice(Product product, BigDecimal minPrice, BigDecimal maxPrice) {
+        if (minPrice == null && maxPrice == null) return true;
         if (product.getPrices() == null || product.getPrices().isEmpty()) return false;
-        
+
         BigDecimal lowestPrice = product.getPrices().stream()
                 .map(ProductPrice::getPrice)
                 .min(BigDecimal::compareTo)
